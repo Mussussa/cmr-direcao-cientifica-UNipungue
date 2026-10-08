@@ -4,18 +4,19 @@ import Hero from '../components/Hero';
 import { client, urlFor } from '../lib/sanity';
 
 export default function Home() {
-  const [heroData, setHeroData] = useState(null);
+  // Alterado para iniciar como array vazio em vez de null
+  const [heroData, setHeroData] = useState([]);
   const [destaques, setDestaques] = useState([]);
-  const [publicacoes, setPublicacoes] = useState([]); // Novo estado para as publicações
+  const [publicacoes, setPublicacoes] = useState([]);
 
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
-        // Buscamos Hero, Eventos e Publicações ao mesmo tempo
         const [heroResult, destaquesResult, publicacoesResult] = await Promise.all([
-          client.fetch('*[_type == "hero"][0]'),
+          // CRÍTICO: Consulta alterada para trazer todos os slides (sem o [0] no final)
+          client.fetch('*[_type == "hero"]'),
           client.fetch('*[_type == "evento"] | order(data desc)[0...3]'),
-          client.fetch('*[_type == "publicacao"] | order(data desc)[0...3]') // Futuro schema no Sanity
+          client.fetch('*[_type == "publicacao"] | order(data desc)[0...3]')
         ]);
         
         setHeroData(heroResult);
@@ -29,19 +30,22 @@ export default function Home() {
     fetchHomeData();
   }, []);
 
-  if (!heroData) {
+  if (!heroData || heroData.length === 0) {
     return <div className="h-[60vh] flex items-center justify-center font-medium text-gray-500">A carregar informações...</div>;
   }
 
-  const formattedData = {
-    titulo: heroData.titulo,
-    subtitulo: heroData.subtitulo,
-    imagemFundo: heroData.imagemFundo ? urlFor(heroData.imagemFundo).url() : ''
-  };
+  // CRÍTICO: Prepara o array de slides para o Hero
+  const formattedHeroData = heroData.map(hero => ({
+    _id: hero._id,
+    titulo: hero.titulo,
+    subtitulo: hero.subtitulo,
+    imagemFundo: hero.imagemFundo ? urlFor(hero.imagemFundo).url() : ''
+  }));
 
   return (
     <div>
-      <Hero data={formattedData} />
+      {/* Passa o array formatado para o componente Hero */}
+      <Hero data={formattedHeroData} />
       
       {/* Secção de Eventos */}
       <section className="container mx-auto px-4 py-16">
@@ -92,7 +96,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* Secção de Produção Científica (Fundo ligeiramente diferente para destacar) */}
+      {/* Secção de Produção Científica */}
       <section className="bg-gray-50 border-t border-gray-100 py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -116,7 +120,7 @@ export default function Home() {
                   <p className="text-gray-600 text-sm line-clamp-3 mb-6 flex-grow">
                     {pub.resumo}
                   </p>
-                  <Link to="/publicacoes" className="text-blue-600 font-medium hover:underline mt-auto">
+                  <Link to={`/publicacoes/${pub._id}`} className="text-blue-600 font-medium hover:underline mt-auto">
                     Aceder à publicação &rarr;
                   </Link>
                 </div>
