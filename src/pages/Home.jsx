@@ -6,19 +6,21 @@ import { client, urlFor } from '../lib/sanity';
 export default function Home() {
   const [heroData, setHeroData] = useState(null);
   const [destaques, setDestaques] = useState([]);
+  const [publicacoes, setPublicacoes] = useState([]); // Novo estado para as publicações
 
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
-        // Promise.all permite buscar o Hero e os Destaques em simultâneo (mais rápido)
-        const [heroResult, destaquesResult] = await Promise.all([
+        // Buscamos Hero, Eventos e Publicações ao mesmo tempo
+        const [heroResult, destaquesResult, publicacoesResult] = await Promise.all([
           client.fetch('*[_type == "hero"][0]'),
-          // Busca os 3 eventos mais recentes baseados na data
-          client.fetch('*[_type == "evento"] | order(data desc)[0...3]') 
+          client.fetch('*[_type == "evento"] | order(data desc)[0...3]'),
+          client.fetch('*[_type == "publicacao"] | order(data desc)[0...3]') // Futuro schema no Sanity
         ]);
         
         setHeroData(heroResult);
         setDestaques(destaquesResult);
+        setPublicacoes(publicacoesResult);
       } catch (error) {
         console.error("Erro ao buscar dados do Sanity:", error);
       }
@@ -28,7 +30,7 @@ export default function Home() {
   }, []);
 
   if (!heroData) {
-    return <div className="h-[60vh] flex items-center justify-center">A carregar informações...</div>;
+    return <div className="h-[60vh] flex items-center justify-center font-medium text-gray-500">A carregar informações...</div>;
   }
 
   const formattedData = {
@@ -41,6 +43,7 @@ export default function Home() {
     <div>
       <Hero data={formattedData} />
       
+      {/* Secção de Eventos */}
       <section className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">Notícias e Destaques</h2>
         
@@ -57,7 +60,7 @@ export default function Home() {
                     className="w-full h-48 object-cover"
                   />
                 ) : (
-                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400">
+                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 font-medium">
                     Sem imagem
                   </div>
                 )}
@@ -68,11 +71,10 @@ export default function Home() {
                       {new Date(item.data).toLocaleDateString('pt-PT')}
                     </p>
                   )}
-                  {/* A classe line-clamp-3 corta o texto caso seja muito longo */}
                   <p className="text-gray-600 text-sm line-clamp-3 mb-4 flex-grow">
                     {item.descricao}
                   </p>
-                  <Link to="/eventos" className="text-blue-600 font-medium hover:underline mt-auto inline-block">
+                  <Link to={`/eventos/${item._id}`} className="text-blue-600 font-medium hover:underline mt-auto inline-block">
                     Ler mais &rarr;
                   </Link>
                 </div>
@@ -83,11 +85,53 @@ export default function Home() {
         
         {destaques.length > 0 && (
           <div className="text-center mt-10">
-            <Link to="/eventos" className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 transition font-medium">
+            <Link to="/eventos" className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition font-medium inline-block shadow-sm">
               Ver todos os Eventos
             </Link>
           </div>
         )}
+      </section>
+
+      {/* Secção de Produção Científica (Fundo ligeiramente diferente para destacar) */}
+      <section className="bg-gray-50 border-t border-gray-100 py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Produção Científica Recente</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Descobre os artigos, monografias e publicações mais recentes desenvolvidos pelos investigadores da Universidade Púnguè.
+            </p>
+          </div>
+
+          {publicacoes.length === 0 ? (
+            <p className="text-center text-gray-600">Nenhuma publicação disponível no momento.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {publicacoes.map((pub) => (
+                <div key={pub._id} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 transition flex flex-col">
+                  <span className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">
+                    {pub.categoria || 'Artigo Científico'}
+                  </span>
+                  <h3 className="text-lg font-bold text-gray-800 mb-2">{pub.titulo}</h3>
+                  <p className="text-sm text-gray-500 mb-4">Por: <span className="font-medium text-gray-700">{pub.autor}</span></p>
+                  <p className="text-gray-600 text-sm line-clamp-3 mb-6 flex-grow">
+                    {pub.resumo}
+                  </p>
+                  <Link to="/publicacoes" className="text-blue-600 font-medium hover:underline mt-auto">
+                    Aceder à publicação &rarr;
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {publicacoes.length > 0 && (
+            <div className="text-center mt-10">
+              <Link to="/publicacoes" className="border-2 border-blue-600 text-blue-600 px-6 py-3 rounded-md hover:bg-blue-50 transition font-medium inline-block">
+                Explorar Repositório Completo
+              </Link>
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );
