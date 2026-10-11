@@ -120,9 +120,9 @@ export default function Home() {
                   <p className="text-gray-600 text-sm line-clamp-3 mb-6 flex-grow">
                     {pub.resumo}
                   </p>
-                  <Link to={`/publicacoes/${pub._id}`} className="text-blue-600 font-medium hover:underline mt-auto">
+                  <a href={pub.link} className="text-blue-600 font-medium hover:underline mt-auto">
                     Aceder à publicação &rarr;
-                  </Link>
+                  </a>
                 </div>
               ))}
             </div>
