@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Eventos from './pages/Eventos';
 import Publicacoes from './pages/Publicacoes';
 import Equipa from './pages/Equipa';
+import Projetos from './pages/Projetos'; // Nova importação
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="eventos" element={<Eventos />} />
           <Route path="publicacoes" element={<Publicacoes />} />
           <Route path="equipa" element={<Equipa />} />
+          <Route path="projetos" element={<Projetos />} /> {/* Nova Rota */}
         </Route>
       </Routes>
     </BrowserRouter>

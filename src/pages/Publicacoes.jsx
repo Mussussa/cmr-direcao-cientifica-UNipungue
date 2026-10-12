@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { client } from '../lib/sanity';
-import { Filter } from 'lucide-react';
+import { Filter, Search } from 'lucide-react';
 
 export default function Publicacoes() {
   const [publicacoes, setPublicacoes] = useState([]);
   
   // Estados para controlar os filtros selecionados
+  const [termoPesquisa, setTermoPesquisa] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroFaculdade, setFiltroFaculdade] = useState('');
   const [filtroExtensao, setFiltroExtensao] = useState('');
@@ -22,12 +23,12 @@ export default function Publicacoes() {
       .catch(console.error);
   }, []);
 
-  // Extrai os anos únicos das publicações recebidas (ex: "2026", "2025")
+  // Extrai os anos únicos das publicações recebidas
   const anosDisponiveis = [...new Set(
     publicacoes
       .map(pub => pub.dataPublicacao ? pub.dataPublicacao.substring(0, 4) : null)
       .filter(Boolean)
-  )].sort((a, b) => b - a); // Ordena do mais recente para o mais antigo
+  )].sort((a, b) => b - a);
 
   // Lógica de filtragem no cliente (frontend)
   const publicacoesFiltradas = publicacoes.filter((pub) => {
@@ -36,36 +37,50 @@ export default function Publicacoes() {
     const matchExtensao = filtroExtensao === '' || pub.extensao === filtroExtensao;
     const matchAno = filtroAno === '' || (pub.dataPublicacao && pub.dataPublicacao.startsWith(filtroAno));
     
-    return matchCategoria && matchFaculdade && matchExtensao && matchAno;
+    // Pesquisa por texto (Título, Autores ou Resumo) ignorando maiúsculas/minúsculas
+    const termo = termoPesquisa.toLowerCase();
+    const matchPesquisa = termo === '' || 
+      (pub.titulo && pub.titulo.toLowerCase().includes(termo)) ||
+      (pub.autores && pub.autores.toLowerCase().includes(termo)) ||
+      (pub.resumo && pub.resumo.toLowerCase().includes(termo));
+    
+    return matchCategoria && matchFaculdade && matchExtensao && matchAno && matchPesquisa;
   });
 
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-8 text-gray-800 border-b pb-4">Produção Científica</h1>
       
-      {/* Container Principal: Coluna no mobile, Linha no PC */}
       <div className="flex flex-col lg:flex-row gap-8">
         
-        {/* ASIDE - Barra de Filtros */}
-        {/* No PC, tem 25% da largura (lg:w-1/4) e fica "colada" no topo ao fazer scroll (sticky top-24) */}
         <aside className="w-full lg:w-1/4 lg:sticky lg:top-24 self-start">
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm">
             
-            {/* Cabeçalho do Aside com botão para mostrar/esconder no mobile */}
+            {/* Barra de Pesquisa - Sempre visível, acima dos dropdowns */}
+            <div className="mb-6 relative">
+              <input
+                type="text"
+                placeholder="Pesquisar publicações..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+                value={termoPesquisa}
+                onChange={(e) => setTermoPesquisa(e.target.value)}
+              />
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            </div>
+
             <div 
-              className="flex justify-between items-center cursor-pointer lg:cursor-default mb-4"
+              className="flex justify-between items-center cursor-pointer lg:cursor-default mb-4 border-t pt-4 border-gray-200 lg:border-0 lg:pt-0"
               onClick={() => setFiltrosAbertos(!filtrosAbertos)}
             >
               <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
                 <Filter size={20} className="text-blue-600" />
-                Filtros
+                Filtros Avançados
               </h2>
               <span className="lg:hidden text-blue-600 font-medium">
                 {filtrosAbertos ? 'Ocultar' : 'Mostrar'}
               </span>
             </div>
 
-            {/* Campos de filtro (escondidos no mobile até se clicar em "Mostrar") */}
             <div className={`flex flex-col gap-4 ${filtrosAbertos ? 'block' : 'hidden lg:flex'}`}>
               
               <div className="flex flex-col gap-1">
@@ -133,8 +148,6 @@ export default function Publicacoes() {
           </div>
         </aside>
         
-        {/* MAIN - Lista de Publicações */}
-        {/* No PC, ocupa 75% do espaço restante (lg:w-3/4) */}
         <main className="w-full lg:w-3/4">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold text-gray-800">Resultados da Pesquisa</h3>
@@ -148,7 +161,7 @@ export default function Publicacoes() {
               <p className="text-gray-500 text-lg">Nenhuma publicação encontrada para os filtros selecionados.</p>
               <button 
                 onClick={() => {
-                  setFiltroCategoria(''); setFiltroFaculdade(''); setFiltroExtensao(''); setFiltroAno('');
+                  setTermoPesquisa(''); setFiltroCategoria(''); setFiltroFaculdade(''); setFiltroExtensao(''); setFiltroAno('');
                 }}
                 className="mt-4 text-blue-600 hover:underline font-medium"
               >
@@ -160,7 +173,6 @@ export default function Publicacoes() {
               {publicacoesFiltradas.map((pub) => (
                 <article key={pub._id} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
                   
-                  {/* Etiquetas Visuais (Tags) */}
                   <div className="flex flex-wrap gap-2 mb-3">
                     {pub.dataPublicacao && (
                       <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded uppercase tracking-wider">
